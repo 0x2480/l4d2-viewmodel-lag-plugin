@@ -24,3 +24,4 @@ The DLL binary is built using Visual Studio 2013 build tools, for best results a
 
 ## Additional information:
 This repository uses alliedmodders/hl2sdk branch l4d2 as a base and modifies a couple files from the original source code for compatibility with the serverplugin framework and VS2013 build tools as it's not compilable by default.
+In addition the source code uses MinHook v1.3.3, a compiled binary is supplied.
