@@ -43,6 +43,7 @@
 													// in the past from your last call and be able to 
 													// get an interpolated value.
 
+#ifndef USE_LASTTIMESTAMP
 // this global keeps the last known server packet tick (to avoid calling engine->GetLastTimestamp() all the time)
 extern float g_flLastPacketTimestamp;
 
@@ -51,6 +52,7 @@ inline void Interpolation_SetLastPacketTimeStamp( float timestamp)
 	Assert( timestamp > 0 );
 	g_flLastPacketTimestamp = timestamp;
 }
+#endif
 
 
 // Before calling Interpolate(), you can use this use this to setup the context if 
@@ -616,7 +618,11 @@ template< typename Type, bool IS_ARRAY >
 void CInterpolatedVarArrayBase<Type, IS_ARRAY>::NoteLastNetworkedValue()
 {
 	memcpy( m_LastNetworkedValue, m_pValue, m_nMaxCount * sizeof( Type ) );
+	#ifdef USE_LASTTIMESTAMP
+	m_LastNetworkedTime = engineclient->GetLastTimeStamp();
+	#else
 	m_LastNetworkedTime = g_flLastPacketTimestamp;
+	#endif
 }
 
 template< typename Type, bool IS_ARRAY >

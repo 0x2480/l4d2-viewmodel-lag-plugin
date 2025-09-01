@@ -197,6 +197,7 @@ public:
 	
 	void SetChangeInfo( unsigned short info );
 	void SetChangeInfoSerialNumber( unsigned short sn );
+
 	unsigned short	 GetChangeInfo() const;
 	unsigned short	 GetChangeInfoSerialNumber() const;
 

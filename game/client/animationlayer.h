@@ -19,7 +19,7 @@ class C_AnimationLayer
 public:
 
 	// This allows the datatables to access private members.
-	ALLOW_DATATABLES_PRIVATE_ACCESS();
+	//ALLOW_DATATABLES_PRIVATE_ACCESS();
 
 	C_AnimationLayer();
 	void Reset();

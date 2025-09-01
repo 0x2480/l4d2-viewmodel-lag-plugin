@@ -11,6 +11,9 @@ vcpm$
 \.suo$
 \.user$
 
+# Visual Studio directories
+/.vs
+
 # Build directories
 /Debug.*
 /Release.*

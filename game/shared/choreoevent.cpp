@@ -803,7 +803,7 @@ float CFlexAnimationTrack::GetFracIntensity( float time, int type )
 	{
 		f2 = ( time - esStart->time ) / ( dt );
 	}
-	f2 = clamp( f2, 0.0f, 1.0f );
+	f2 = ::clamp( f2, 0.0f, 1.0f );
 
 	Vector vOut;
 	int dummy;
@@ -843,7 +843,7 @@ float CFlexAnimationTrack::GetFracIntensity( float time, int type )
 		}
 	}
 
-	float retval = clamp( vOut.y, 0.0f, 1.0f );
+	float retval = ::clamp( vOut.y, 0.0f, 1.0f );
 	return retval;
 }
 
@@ -1680,7 +1680,7 @@ float CCurveData::GetIntensity( ICurveDataAccessor *data, float time )
 	{
 		f2 = ( time - esStart->time ) / ( dt );
 	}
-	f2 = clamp( f2, 0.0f, 1.0f );
+	f2 = ::clamp( f2, 0.0f, 1.0f );
 
 	Vector vOut;
 	int dummy;
@@ -1732,7 +1732,7 @@ float CCurveData::GetIntensity( ICurveDataAccessor *data, float time )
 		}
 	}
 
-	float retval = clamp( vOut.y, 0.0f, 1.0f );
+	float retval = ::clamp( vOut.y, 0.0f, 1.0f );
 	return retval;
 }
 
@@ -1862,7 +1862,7 @@ float CCurveData::GetIntensityArea( ICurveDataAccessor *data, float time )
 	{
 		f2 = ( time - esStart->time ) / ( dt );
 	}
-	f2 = clamp( f2, 0.0f, 1.0f );
+	f2 = ::clamp( f2, 0.0f, 1.0f );
 
 	Vector vOut;
 	int dummy;
@@ -1894,7 +1894,7 @@ float CCurveData::GetIntensityArea( ICurveDataAccessor *data, float time )
 		vOut );
 
 	// Con_Printf( "Accum %f : Partial %f\n", flTotal, vOut.y * (vEnd.x - vStart.x) * f2 );
-	flTotal = flTotal + clamp( vOut.y, 0.0f, 1.0f ) * (vEnd.x - vStart.x);
+	flTotal = flTotal + ::clamp( vOut.y, 0.0f, 1.0f ) * (vEnd.x - vStart.x);
 	return flTotal;
 }
 

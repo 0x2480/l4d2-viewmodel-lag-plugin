@@ -12,6 +12,7 @@
 #include "filesystem.h"
 #include "engine/iserverplugin.h"
 #include "game/server/iplayerinfo.h"
+#include "icliententity.h"
 #include "eiface.h"
 #include "igameevents.h"
 #include "convar.h"
@@ -19,6 +20,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineTrace.h"
 #include "tier2/tier2.h"
+#include "utils.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -35,8 +37,8 @@ IEngineTrace *enginetrace = NULL;
 
 CGlobalVars *gpGlobals = NULL;
 
-// function to initialize any cvars/command in this plugin
-void Bot_RunAll( void ); 
+bool Viewmodel_Run(CreateInterfaceFn); // from clientplugin_viewmodel.cpp
+void Viewmodel_Stop();
 
 // useful helper func
 inline bool FStrEq(const char *sz1, const char *sz2)
@@ -72,6 +74,8 @@ public:
 	virtual PLUGIN_RESULT	ClientCommand( edict_t *pEntity, const CCommand &args );
 	virtual PLUGIN_RESULT	NetworkIDValidated( const char *pszUserName, const char *pszNetworkID );
 	virtual void			OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue );
+	virtual void			OnEdictAllocated(edict_t* edict);
+	virtual void			OnEdictFreed(const edict_t* edict);
 
 	// IGameEventListener Interface
 	virtual void FireGameEvent( KeyValues * event );
@@ -126,8 +130,8 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 	enginetrace = (IEngineTrace *)interfaceFactory(INTERFACEVERSION_ENGINETRACE_SERVER,NULL);
 	randomStr = (IUniformRandomStream *)interfaceFactory(VENGINE_SERVER_RANDOM_INTERFACE_VERSION, NULL);
 
-	// get the interfaces we want to use
-	if(	! ( engine && gameeventmanager && g_pFullFileSystem && helpers && enginetrace && randomStr ) )
+	// get the interfaces we want to use (don't check g_pFullFileSystem because this is a partial project)
+	if(	! ( engine && gameeventmanager && helpers && enginetrace && randomStr ) )
 	{
 		return false; // we require all these interface to function
 	}
@@ -135,6 +139,10 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 	if ( playerinfomanager )
 	{
 		gpGlobals = playerinfomanager->GetGlobalVars();
+	}
+
+	if (!Viewmodel_Run(interfaceFactory)) {
+		return false;
 	}
 
 	MathLib_Init( 2.2f, 2.2f, 0.0f, 2 );
@@ -147,6 +155,7 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::Unload( void )
 {
+	Viewmodel_Stop();
 	gameeventmanager->RemoveListener( this ); // make sure we are unloaded from the event system
 
 	ConVar_Unregister( );
@@ -173,7 +182,7 @@ void CEmptyServerPlugin::UnPause( void )
 //---------------------------------------------------------------------------------
 const char *CEmptyServerPlugin::GetPluginDescription( void )
 {
-	return "Emtpy-Plugin, Valve";
+	return "HL2 viewmodel restoration for L4D2, Grizzle";
 }
 
 //---------------------------------------------------------------------------------
@@ -198,10 +207,6 @@ void CEmptyServerPlugin::ServerActivate( edict_t *pEdictList, int edictCount, in
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::GameFrame( bool simulating )
 {
-	if ( simulating )
-	{
-		Bot_RunAll();
-	}
 }
 
 //---------------------------------------------------------------------------------
@@ -231,14 +236,6 @@ void CEmptyServerPlugin::ClientDisconnect( edict_t *pEntity )
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::ClientPutInServer( edict_t *pEntity, char const *playername )
 {
-	KeyValues *kv = new KeyValues( "msg" );
-	kv->SetString( "title", "Hello" );
-	kv->SetString( "msg", "Hello there" );
-	kv->SetColor( "color", Color( 255, 0, 0, 255 ));
-	kv->SetInt( "level", 5);
-	kv->SetInt( "time", 10);
-	helpers->CreateMessage( pEntity, DIALOG_MSG, kv, this );
-	kv->deleteThis();
 }
 
 //---------------------------------------------------------------------------------
@@ -254,11 +251,11 @@ void CEmptyServerPlugin::SetCommandClient( int index )
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::ClientSettingsChanged( edict_t *pEdict )
 {
-	if ( playerinfomanager )
+	/*if (playerinfomanager)
 	{
 		IPlayerInfo *playerinfo = playerinfomanager->GetPlayerInfo( pEdict );
 
-		const char * name = engine->GetClientConVarValue( engine->IndexOfEdict(pEdict), "name" );
+		const char * name = engine->GetClientConVarValue( IndexOfEdict(pEdict), "name" );
 
 		if ( playerinfo && name && playerinfo->GetName() && 
 			 Q_stricmp( name, playerinfo->GetName()) ) // playerinfo may be NULL if the MOD doesn't support access to player data 
@@ -269,7 +266,7 @@ void CEmptyServerPlugin::ClientSettingsChanged( edict_t *pEdict )
 			engine->ClientPrintf( pEdict, msg ); // this is the bad way to check this, the better option it to listen for the "player_changename" event in FireGameEvent()
 												// this is here to give a real example of how to use the playerinfo interface
 		}
-	}
+	}*/
 }
 
 //---------------------------------------------------------------------------------
@@ -280,108 +277,11 @@ PLUGIN_RESULT CEmptyServerPlugin::ClientConnect( bool *bAllowConnect, edict_t *p
 	return PLUGIN_CONTINUE;
 }
 
-CON_COMMAND( DoAskConnect, "Server plugin example of using the ask connect dialog" )
-{
-	if ( args.ArgC() < 2 )
-	{
-		Warning ( "DoAskConnect <server IP>\n" );
-	}
-	else
-	{
-		const char *pServerIP = args.Arg( 1 );
-
-		KeyValues *kv = new KeyValues( "menu" );
-		kv->SetString( "title", pServerIP );	// The IP address of the server to connect to goes in the "title" field.
-		kv->SetInt( "time", 3 );
-
-		for ( int i=1; i < gpGlobals->maxClients; i++ )
-		{
-			edict_t *pEdict = engine->PEntityOfEntIndex( i );
-			if ( pEdict )
-			{
-				helpers->CreateMessage( pEdict, DIALOG_ASKCONNECT, kv, &g_EmtpyServerPlugin );
-			}
-		}
-
-		kv->deleteThis();
-	}
-}
-
 //---------------------------------------------------------------------------------
 // Purpose: called when a client types in a command (only a subset of commands however, not CON_COMMAND's)
 //---------------------------------------------------------------------------------
 PLUGIN_RESULT CEmptyServerPlugin::ClientCommand( edict_t *pEntity, const CCommand &args )
 {
-	const char *pcmd = args[0];
-
-	if ( !pEntity || pEntity->IsFree() ) 
-	{
-		return PLUGIN_CONTINUE;
-	}
-
-	if ( FStrEq( pcmd, "menu" ) )
-	{
-		KeyValues *kv = new KeyValues( "menu" );
-		kv->SetString( "title", "You've got options, hit ESC" );
-		kv->SetInt( "level", 1 );
-		kv->SetColor( "color", Color( 255, 0, 0, 255 ));
-		kv->SetInt( "time", 20 );
-		kv->SetString( "msg", "Pick an option\nOr don't." );
-		
-		for( int i = 1; i < 9; i++ )
-		{
-			char num[10], msg[10], cmd[10];
-			Q_snprintf( num, sizeof(num), "%i", i );
-			Q_snprintf( msg, sizeof(msg), "Option %i", i );
-			Q_snprintf( cmd, sizeof(cmd), "option%i", i );
-
-			KeyValues *item1 = kv->FindKey( num, true );
-			item1->SetString( "msg", msg );
-			item1->SetString( "command", cmd );
-		}
-
-		helpers->CreateMessage( pEntity, DIALOG_MENU, kv, this );
-		kv->deleteThis();
-		return PLUGIN_STOP; // we handled this function
-	}
-	else if ( FStrEq( pcmd, "rich" ) )
-	{
-		KeyValues *kv = new KeyValues( "menu" );
-		kv->SetString( "title", "A rich message" );
-		kv->SetInt( "level", 1 );
-		kv->SetInt( "time", 20 );
-		kv->SetString( "msg", "This is a long long long text string.\n\nIt also has line breaks." );
-		
-		helpers->CreateMessage( pEntity, DIALOG_TEXT, kv, this );
-		kv->deleteThis();
-		return PLUGIN_STOP; // we handled this function
-	}
-	else if ( FStrEq( pcmd, "msg" ) )
-	{
-		KeyValues *kv = new KeyValues( "menu" );
-		kv->SetString( "title", "Just a simple hello" );
-		kv->SetInt( "level", 1 );
-		kv->SetInt( "time", 20 );
-		
-		helpers->CreateMessage( pEntity, DIALOG_MSG, kv, this );
-		kv->deleteThis();
-		return PLUGIN_STOP; // we handled this function
-	}
-	else if ( FStrEq( pcmd, "entry" ) )
-	{
-		KeyValues *kv = new KeyValues( "entry" );
-		kv->SetString( "title", "Stuff" );
-		kv->SetString( "msg", "Enter something" );
-		kv->SetString( "command", "say" ); // anything they enter into the dialog turns into a say command
-		kv->SetInt( "level", 1 );
-		kv->SetInt( "time", 20 );
-		
-		helpers->CreateMessage( pEntity, DIALOG_ENTRY, kv, this );
-		kv->deleteThis();
-		return PLUGIN_STOP; // we handled this function		
-	}
-
-
 	return PLUGIN_CONTINUE;
 }
 
@@ -398,7 +298,13 @@ PLUGIN_RESULT CEmptyServerPlugin::NetworkIDValidated( const char *pszUserName, c
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue )
 {
-	Msg( "Cvar query (cookie: %d, status: %d) - name: %s, value: %s\n", iCookie, eStatus, pCvarName, pCvarValue );
+}
+
+void CEmptyServerPlugin::OnEdictAllocated(edict_t* edict)
+{
+}
+void CEmptyServerPlugin::OnEdictFreed(const edict_t* edict)
+{
 }
 
 //---------------------------------------------------------------------------------
@@ -406,24 +312,4 @@ void CEmptyServerPlugin::OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, ed
 //---------------------------------------------------------------------------------
 void CEmptyServerPlugin::FireGameEvent( KeyValues * event )
 {
-	const char * name = event->GetName();
-	Msg( "CEmptyServerPlugin::FireGameEvent: Got event \"%s\"\n", name );
 }
-
-//---------------------------------------------------------------------------------
-// Purpose: an example of how to implement a new command
-//---------------------------------------------------------------------------------
-CON_COMMAND( empty_version, "prints the version of the empty plugin" )
-{
-	Msg( "Version:1.0.0.0\n" );
-}
-
-CON_COMMAND( empty_log, "logs the version of the empty plugin" )
-{
-	engine->LogPrint( "Version:1.0.0.0\n" );
-}
-
-//---------------------------------------------------------------------------------
-// Purpose: an example cvar
-//---------------------------------------------------------------------------------
-static ConVar empty_cvar("plugin_empty", "0", 0, "Example plugin cvar");
