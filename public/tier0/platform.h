@@ -847,7 +847,8 @@ struct CPUInformation
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 #endif
 
-PLATFORM_INTERFACE const CPUInformation& GetCPUInformation();
+//PLATFORM_INTERFACE const CPUInformation& GetCPUInformation();
+const CPUInformation& GetCPUInformation(); // L4D1 doesnt import this so i implemented it here
 
 #ifdef __clang__
 #pragma clang diagnostic pop

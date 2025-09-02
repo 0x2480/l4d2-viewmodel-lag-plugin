@@ -33,6 +33,12 @@
     <ClCompile Include="clientplugin_viewmodel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cputopology.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\lib\public\mathlib.lib">
@@ -117,6 +123,9 @@
     </ClInclude>
     <ClInclude Include="minhook\MinHook.h">
       <Filter>Source Files\minhook</Filter>
+    </ClInclude>
+    <ClInclude Include="cputopology.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

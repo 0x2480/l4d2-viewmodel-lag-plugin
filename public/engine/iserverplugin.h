@@ -113,8 +113,8 @@ public:
 	virtual void			OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue ) = 0;
 
 	// added with version 3 of the interface.
-	virtual void			OnEdictAllocated(edict_t* edict) = 0;
-	virtual void			OnEdictFreed(const edict_t* edict) = 0;
+	//virtual void			OnEdictAllocated(edict_t* edict) = 0;
+	//virtual void			OnEdictFreed(const edict_t* edict) = 0;
 	
 };
 

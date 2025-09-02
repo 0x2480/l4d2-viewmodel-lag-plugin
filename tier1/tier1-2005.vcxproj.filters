@@ -92,6 +92,9 @@
     <ClCompile Include="utlsymbol.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="convar_l4d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\tier1\bitbuf.h">
@@ -257,6 +260,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\common\xbox\xboxstubs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tier1\convar_l4d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

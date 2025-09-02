@@ -74,8 +74,8 @@ public:
 	virtual PLUGIN_RESULT	ClientCommand( edict_t *pEntity, const CCommand &args );
 	virtual PLUGIN_RESULT	NetworkIDValidated( const char *pszUserName, const char *pszNetworkID );
 	virtual void			OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue );
-	virtual void			OnEdictAllocated(edict_t* edict);
-	virtual void			OnEdictFreed(const edict_t* edict);
+	//virtual void			OnEdictAllocated(edict_t* edict);
+	//virtual void			OnEdictFreed(const edict_t* edict);
 
 	// IGameEventListener Interface
 	virtual void FireGameEvent( KeyValues * event );
@@ -90,7 +90,7 @@ private:
 // The plugin is a static singleton that is exported as an interface
 //
 CEmptyServerPlugin g_EmtpyServerPlugin;
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CEmptyServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_EmtpyServerPlugin );
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CEmptyServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_2, g_EmtpyServerPlugin ); // use version 2 to support l4d1
 
 //---------------------------------------------------------------------------------
 // Purpose: constructor/destructor
@@ -112,7 +112,7 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 	ConnectTier1Libraries( &interfaceFactory, 1 );
 	ConnectTier2Libraries( &interfaceFactory, 1 );
 
-	playerinfomanager = (IPlayerInfoManager *)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER,NULL);
+	playerinfomanager = (IPlayerInfoManager *)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
 	if ( !playerinfomanager )
 	{
 		Warning( "Unable to load playerinfomanager, ignoring\n" ); // this isn't fatal, we just won't be able to access specific player data
@@ -182,7 +182,7 @@ void CEmptyServerPlugin::UnPause( void )
 //---------------------------------------------------------------------------------
 const char *CEmptyServerPlugin::GetPluginDescription( void )
 {
-	return "HL2 viewmodel restoration for L4D2, Grizzle";
+	return "HL2 viewmodel restoration for L4D 1 and 2, Grizzle";
 }
 
 //---------------------------------------------------------------------------------
@@ -300,12 +300,12 @@ void CEmptyServerPlugin::OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, ed
 {
 }
 
-void CEmptyServerPlugin::OnEdictAllocated(edict_t* edict)
+/*void CEmptyServerPlugin::OnEdictAllocated(edict_t* edict)
 {
 }
 void CEmptyServerPlugin::OnEdictFreed(const edict_t* edict)
 {
-}
+}*/
 
 //---------------------------------------------------------------------------------
 // Purpose: called when an event is fired

@@ -101,6 +101,7 @@ class ConCommandBase
 {
 	friend class CCvar;
 	friend class ConVar;
+	friend class ConVar_L4D;
 	friend class ConCommand;
 	friend void ConVar_Register( int nCVarFlag, IConCommandBaseAccessor *pAccessor );
 	friend void ConVar_PublishToVXConsole();
