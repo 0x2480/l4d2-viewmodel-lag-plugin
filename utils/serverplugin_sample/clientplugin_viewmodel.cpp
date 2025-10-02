@@ -61,7 +61,6 @@ ConVar cl_extrapolate_amount = ConVar("", "", FCVAR_HIDDEN);
 // -------------------------------------------------------------------------
 
 typedef void(__fastcall* CalcViewModelView_t)(void* thisptr, void*, void* owner, const Vector& eyePosition, const QAngle& eyeAngles);
-CalcViewModelView_t C_BaseViewModel_CalcViewModelView_Original;
 CalcViewModelView_t C_TerrorViewModel_CalcViewModelView_Original;
 
 ConVar* plugin_wpn_sway_cvar;
@@ -97,7 +96,7 @@ void CalcViewModelLag(Vector& origin, QAngle& angles, QAngle& original_angles)
 void __fastcall C_TerrorViewModel_CalcViewModelView(void* thisptr, void* edx, void* owner, const Vector& eyePosition, const QAngle& eyeAngles)
 {
 	if (!plugin_wpn_sway_cvar->GetBool()) {
-		C_BaseViewModel_CalcViewModelView_Original(thisptr, edx, owner, eyePosition, eyeAngles);
+		C_TerrorViewModel_CalcViewModelView_Original(thisptr, edx, owner, eyePosition, eyeAngles);
 		return;
 	}
 	
@@ -106,11 +105,11 @@ void __fastcall C_TerrorViewModel_CalcViewModelView(void* thisptr, void* edx, vo
 	Vector vmorigin = eyePosition;
 
 	CalcViewModelLag(vmorigin, vmangles, vmangoriginal);
-	C_BaseViewModel_CalcViewModelView_Original(thisptr, edx, owner, vmorigin, vmangles);
+	C_TerrorViewModel_CalcViewModelView_Original(thisptr, edx, owner, vmorigin, vmangles);
 }
 
 ESourceEngine eEngine = k_eOther;
-CSigScan C_TerrorViewModel_CalcViewModelView_Sig, C_BaseViewModel_CalcViewModelView_Sig, gpGlobals_Sig;
+CSigScan C_TerrorViewModel_CalcViewModelView_Sig, gpGlobals_Sig;
 bool Viewmodel_Run(CreateInterfaceFn interfaceFactory)
 {
 	if (!CSigScan::SetDllMemInfo("client.dll")) {
@@ -150,8 +149,6 @@ bool Viewmodel_Run(CreateInterfaceFn interfaceFactory)
 		plugin_wpn_sway_scale = new ConVar("pl_wpn_sway_scale", "1.5", FCVAR_CLIENTDLL);
 		plugin_wpn_sway_interp = new ConVar("pl_wpn_sway_interp", "0.1", FCVAR_CLIENTDLL);
 
-		C_BaseViewModel_CalcViewModelView_Sig.Init((unsigned char*)
-			"\x55\x8B\xEC\x83\xEC\x78\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xFC\x8B\x45\x10", "xxxxxxx????xxxxxxxx", 19);
 		C_TerrorViewModel_CalcViewModelView_Sig.Init((unsigned char*)
 			"\x55\x8B\xEC\x83\xEC\x48\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xFC\x8B\x45\x10\x8B", "xxxxxxx????xxxxxxxxx", 20);
 		gpGlobals_Sig.Init((unsigned char*)
@@ -162,22 +159,19 @@ bool Viewmodel_Run(CreateInterfaceFn interfaceFactory)
 		plugin_wpn_sway_scale = (ConVar*)new ConVar_L4D("pl_wpn_sway_scale", "1.5", FCVAR_CLIENTDLL);
 		plugin_wpn_sway_interp = (ConVar*)new ConVar_L4D("pl_wpn_sway_interp", "0.1", FCVAR_CLIENTDLL);
 
-		C_BaseViewModel_CalcViewModelView_Sig.Init((unsigned char*)
-			"\x83\xEC\x50\x8B\x44", "xxxxx", 5);
 		C_TerrorViewModel_CalcViewModelView_Sig.Init((unsigned char*)
 			"\x83\xEC\x44\x8B\x44\x24\x50", "xxxxxxx", 7);
 		gpGlobals_Sig.Init((unsigned char*)
 			"\xA3\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8D\x54", "x????x????xx", 12);
 	}
 
-    if (!C_BaseViewModel_CalcViewModelView_Sig.is_set || !C_TerrorViewModel_CalcViewModelView_Sig.is_set || !gpGlobals_Sig.is_set) {
+    if (!C_TerrorViewModel_CalcViewModelView_Sig.is_set || !gpGlobals_Sig.is_set) {
 		Warning("Signature scan failed!\n");
         return false;
     }
 	m_LagAnglesHistory.Setup(&m_vLagAngles, 0);
 
 	gpClientGlobals = **(CGlobalVars***)((uintptr_t)gpGlobals_Sig.sig_addr + 1);
-	C_BaseViewModel_CalcViewModelView_Original = (CalcViewModelView_t)C_BaseViewModel_CalcViewModelView_Sig.sig_addr;
 
     MH_Initialize();
 	MH_CreateHook(C_TerrorViewModel_CalcViewModelView_Sig.sig_addr, &C_TerrorViewModel_CalcViewModelView, (LPVOID*)&C_TerrorViewModel_CalcViewModelView_Original);
